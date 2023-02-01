@@ -137,7 +137,8 @@ export function updateGenerators(toolbox: GluegunToolbox) {
 }
 
 function isIgniteProject(): boolean {
-  return filesystem.exists("./ignite") === "dir"
+  // return filesystem.exists("./ignite") === "dir"
+  return true
 }
 
 function cwd() {
@@ -145,11 +146,11 @@ function cwd() {
 }
 
 function igniteDir() {
-  return filesystem.path(cwd(), "ignite")
+  return filesystem.path(cwd(), "")
 }
 
 function appDir() {
-  return filesystem.path(cwd(), "app")
+  return filesystem.path(cwd(), "src")
 }
 
 function templatesDir() {
@@ -182,9 +183,15 @@ type Patch = GluegunPatchingPatchOptions & {
 /**
  * Handles patching files via front matter config
  */
-async function handlePatches(data: { patches?: Patch[]; patch?: Patch }) {
+async function handlePatches(data: { patches?: Patch[]; patch?: Patch }, dirIndex: string) {
   const patches = data.patches ?? []
-  if (data.patch) patches.push(data.patch)
+
+  if (dirIndex) {
+    patches.push({
+      ...data.patch,
+      path: dirIndex,
+    })
+  }
   for (const patch of patches) {
     const { path: patchPath, skip, ...patchOpts } = patch
     if (patchPath && !skip) {
@@ -208,7 +215,9 @@ async function handlePatches(data: { patches?: Patch[]; patch?: Patch }) {
 function installedGenerators(): string[] {
   const { subdirectories, separator } = filesystem
 
-  const generators = subdirectories(templatesDir()).map((g) => g.split(separator).slice(-1)[0])
+  const generators = subdirectories(templatesDir()).map((g) => {
+    return g.split(separator).slice(-1)[0]
+  })
 
   return generators
 }
@@ -216,6 +225,8 @@ function installedGenerators(): string[] {
 type GeneratorOptions = {
   name: string
   skipIndexFile?: boolean
+  dir: string
+  hasDir: boolean
 }
 
 /**
@@ -224,9 +235,10 @@ type GeneratorOptions = {
 export function generateFromTemplate(
   generator: string,
   options: GeneratorOptions,
+  toolbox: GluegunToolbox,
 ): Promise<string>[] {
   const { find, path, dir, separator } = filesystem
-  const { pascalCase, kebabCase, pluralize, camelCase } = strings
+  const { pascalCase, kebabCase, camelCase, pluralize } = strings
 
   // permutations of the name
   const pascalCaseName = pascalCase(options.name)
@@ -239,13 +251,23 @@ export function generateFromTemplate(
   // where are we copying from?
   const templateDir = path(templatesDir(), generator)
 
+  if (generator === "module" && options.hasDir) {
+    toolbox.print.error("Can not generate module with this dir!")
+    return []
+  }
+
+  if (generator === "module" && !options.hasDir) {
+    filesystem.copy(templateDir, path(appDir(), `${pluralize(generator)}/${options.dir}`))
+    return [Promise.resolve(path(appDir(), `${pluralize(generator)}/${options.dir}`))]
+  }
+
   // find the files
   const files = find(templateDir, { matching: "*" })
 
   // loop through the files
   const newFiles = files.map(async (templateFilename: string) => {
     // get the filename and replace `NAME` with the actual name
-    let filename = templateFilename.split(separator).slice(-1)[0].replace("NAME", pascalCaseName)
+    let filename = templateFilename.split(separator).slice(-1)[0].replace("NAME", kebabCaseName)
 
     // strip the .ejs
     if (filename.endsWith(".ejs")) filename = filename.slice(0, -4)
@@ -265,11 +287,22 @@ export function generateFromTemplate(
       return ""
     }
 
-    // apply any provided patches
-    await handlePatches(data)
-
     // where are we copying to?
-    const generatorDir = path(appDir(), pluralize(generator))
+    let generatorDir = path(appDir(), options.dir)
+    let generatorDirIndex = path(appDir(), options.dir.split("/").slice(0, -1) + "/index.ts")
+
+    if (!options.hasDir) {
+      generatorDir = path(appDir(), `components/${pluralize(generator)}/${options.dir}`)
+      generatorDirIndex = path(appDir(), `components/${pluralize(generator)}/index.ts`)
+    }
+
+    const isExist = filesystem.exists(generatorDirIndex)
+
+    if (isExist) {
+      // apply any provided patches
+      await handlePatches(data, generatorDirIndex)
+    }
+
     const defaultDestinationDir = generatorDir // e.g. app/components, app/screens, app/models
     const templateDestinationDir = data.destinationDir
     const destinationDir = templateDestinationDir
@@ -279,7 +312,6 @@ export function generateFromTemplate(
 
     // ensure destination folder exists
     dir(destinationDir)
-
     // write to the destination file
     filesystem.write(destinationPath, content)
 

@@ -26,6 +26,16 @@ async function generate(toolbox: GluegunToolbox) {
     return
   }
 
+  const nameSlit = name.split("/")
+  let componentName = ""
+  const folderName = name
+  const hasDir = nameSlit.length > 1
+  if (nameSlit.length > 1) {
+    componentName = strings.pascalCase(nameSlit[nameSlit.length - 1])
+  } else {
+    componentName = strings.pascalCase(name)
+  }
+
   // avoid the my-component-component phenomenon
   const pascalGenerator = strings.pascalCase(generator)
   let pascalName = strings.pascalCase(name)
@@ -41,10 +51,16 @@ async function generate(toolbox: GluegunToolbox) {
   // okay, let's do it!
   p()
   const updatedFiles = await Promise.all(
-    generateFromTemplate(generator, {
-      name: pascalName,
-      skipIndexFile: parameters.options.skipIndexFile,
-    }),
+    generateFromTemplate(
+      generator,
+      {
+        name: componentName,
+        dir: folderName,
+        hasDir,
+        skipIndexFile: parameters.options.skipIndexFile,
+      },
+      toolbox,
+    ),
   )
   heading(`Generated new files:`)
   updatedFiles.forEach((f) => p(f))

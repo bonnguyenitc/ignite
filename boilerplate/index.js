@@ -1,15 +1,7 @@
-// This is the first file that ReactNative will run when it starts up.
-// If you use Expo (`yarn expo:start`), the entry point is ./App.js instead.
-// Both do essentially the same thing.
+import 'react-native-gesture-handler'
+import './src/localization/i18n'
+import { AppRegistry } from 'react-native'
+import { name as appName } from './app.json'
+import { App } from './src/app'
 
-import App from "./app/app.tsx"
-import React from "react"
-import { AppRegistry } from "react-native"
-import RNBootSplash from "react-native-bootsplash"
-
-function IgniteApp() {
-  return <App hideSplashScreen={RNBootSplash.hide} />
-}
-
-AppRegistry.registerComponent("HelloWorld", () => IgniteApp)
-export default App
+AppRegistry.registerComponent(appName, () => App)

@@ -1,39 +1,24 @@
-const plugins = [
-  [
-    "@babel/plugin-proposal-decorators",
-    {
-      legacy: true,
-    },
+module.exports = {
+  presets: ['module:metro-react-native-babel-preset'],
+  plugins: [
+    [
+      'module-resolver',
+      {
+        root: ['./src'],
+        alias: {
+          /**
+           * Regular expression is used to match all files inside `./src` directory and map each `.src/folder/[..]` to `~folder/[..]` path
+           */
+          '@': './src',
+        },
+        extensions: ['.tsx', '.ts'],
+      },
+    ],
+    'react-native-reanimated/plugin',
   ],
-  ["@babel/plugin-proposal-optional-catch-binding"],
-  "react-native-reanimated/plugin", // NOTE: this must be last in the plugins
-]
-
-const vanillaConfig = {
-  presets: ["module:metro-react-native-babel-preset"],
   env: {
-    production: {},
+    production: {
+      plugins: ['transform-remove-console'],
+    },
   },
-  plugins,
 }
-
-const expoConfig = {
-  presets: ["babel-preset-expo"],
-  env: {
-    production: {},
-  },
-  plugins,
-}
-
-let isExpo = false
-try {
-  const Constants = require("expo-constants")
-  // True if the app is running in an `expo build` app or if it's running in Expo Go.
-  isExpo =
-    Constants.executionEnvironment === "standalone" ||
-    Constants.executionEnvironment === "storeClient"
-} catch {}
-
-const babelConfig = isExpo ? expoConfig : vanillaConfig
-
-module.exports = babelConfig

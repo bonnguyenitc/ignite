@@ -172,7 +172,8 @@ export default {
 
     // #region Bundle Identifier
     const defaultBundleIdentifier = `com.${projectName.toLowerCase()}`
-    let bundleIdentifier = useDefault(options.bundle) ? defaultBundleIdentifier : options.bundle
+    // let bundleIdentifier = useDefault(options.bundle) ? defaultBundleIdentifier : options.bundle
+    let bundleIdentifier = "com.starter"
 
     if (bundleIdentifier === undefined) {
       const bundleIdentifierResponse = await prompt.ask(() => ({
@@ -238,8 +239,9 @@ export default {
     // #endregion
 
     // #region Prompt Git Option
-    const defaultGit = true
-    let git = useDefault(options.git) ? defaultGit : boolFlag(options.git)
+    const defaultGit = false
+    // let git = useDefault(options.git) ? defaultGit : boolFlag(options.git)
+    let git = defaultGit
 
     if (git === undefined) {
       const gitResponse = await prompt.ask<{ git: boolean }>(() => ({
@@ -256,9 +258,10 @@ export default {
 
     // #region Prompt to Remove Demo code
     const defaultRemoveDemo = false
-    let removeDemo = useDefault(options.removeDemo)
-      ? defaultRemoveDemo
-      : boolFlag(options.removeDemo)
+    // let removeDemo = useDefault(options.removeDemo)
+    //   ? defaultRemoveDemo
+    //   : boolFlag(options.removeDemo)
+    let removeDemo = false
     if (removeDemo === undefined) {
       const removeDemoResponse = await prompt.ask<{ removeDemo: boolean }>(() => ({
         type: "confirm",
@@ -407,7 +410,7 @@ export default {
     await copyBoilerplate(toolbox, {
       boilerplatePath,
       targetPath,
-      excluded: [".vscode", "node_modules", "yarn.lock"],
+      excluded: [".vscode", "node_modules", "yarn.lock", "dist"],
       overwrite,
     })
     stopSpinner(" 3D-printing a new React Native app", "🖨")
