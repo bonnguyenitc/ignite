@@ -73,8 +73,8 @@ export default {
   run: async (toolbox: GluegunToolbox) => {
     // #region Toolbox
     const { print, filesystem, system, meta, parameters, prompt } = toolbox
-    const { exists, path, removeAsync, copy, homedir } = filesystem
-    const { info, colors, warning } = print
+    const { exists, path, homedir } = filesystem
+    const { info, colors } = print
     const { gray, yellow, underline, white } = colors
     const options: Options = parameters.options
 
@@ -236,14 +236,6 @@ export default {
       packagerName = packagerNameResponse.packagerName
     }
 
-    // const packagerOptions = { packagerName }
-
-    const ignitePath = path(`${meta.src}`, "..")
-    const boilerplatePath = path(ignitePath, "boilerplate")
-    const boilerplate = (...pathParts: string[]) => path(boilerplatePath, ...pathParts)
-    log(`ignitePath: ${ignitePath}`)
-    log(`boilerplatePath: ${boilerplatePath}`)
-
     const defaultInstallDeps = true
     let installDeps = useDefault(options.installDeps)
       ? defaultInstallDeps
@@ -298,19 +290,6 @@ export default {
 
     // #endregion
 
-    // #region Local build folder clean
-    // Remove some folders that we don't want to copy over
-    // This mostly only applies when you're developing locally
-    await Promise.all([
-      removeAsync(path(boilerplatePath, "node_modules")),
-      removeAsync(path(boilerplatePath, "ios", "Pods")),
-      removeAsync(path(boilerplatePath, "ios", "build")),
-      removeAsync(path(boilerplatePath, "android", ".idea")),
-      removeAsync(path(boilerplatePath, "android", ".gradle")),
-      removeAsync(path(boilerplatePath, "android", "build")),
-    ])
-    // #endregion
-
     // #region Copy Boilerplate Files
     startSpinner(`Pulling from ${boilerplateGitPath}`)
     p()
@@ -325,19 +304,6 @@ export default {
         trim: true,
       })
       stopSpinner(`Installing  package from ${packagerName}`, "🖨")
-    }
-    // copy the .gitignore if it wasn't copied over
-    // Release Ignite installs have the boilerplate's .gitignore in .gitignore.template
-    // (see https://github.com/npm/npm/issues/3763); development Ignite still
-    // has it in .gitignore. Copy it from one or the other.
-    const boilerplateIgnorePath = exists(boilerplate(".gitignore.template"))
-      ? boilerplate(".gitignore.template")
-      : boilerplate(".gitignore")
-    const targetIgnorePath = log(path(targetPath, ".gitignore"))
-    copy(log(boilerplateIgnorePath), targetIgnorePath, { overwrite: true })
-
-    if (exists(targetIgnorePath) === false) {
-      warning(`  Unable to copy ${boilerplateIgnorePath} to ${targetIgnorePath}`)
     }
 
     // note the original directory

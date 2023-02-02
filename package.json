@@ -1,15 +1,15 @@
 {
-  "name": "bap-cli",
-  "version": "1.0.0",
+  "name": "baphue-cli",
+  "version": "1.0.2",
   "description": "Infinite Red's hottest boilerplate for React Native.",
   "bin": {
-    "bap": "bin/bap",
-    "bap-cli": "bin/bap"
+    "baphue": "bin/baphue",
+    "baphue-cli": "bin/baphue"
   },
   "preferGlobal": true,
   "license": "MIT",
-  "repository": "infinitered/ignite",
-  "homepage": "https://github.com/infinitered/ignite",
+  "repository": "bonnguyenitc/ignite",
+  "homepage": "https://github.com/bonnguyenitc/ignite",
   "files": [
     "boilerplate",
     "build",
@@ -18,15 +18,15 @@
     "template.config.js"
   ],
   "author": {
-    "name": "Infinite Red",
-    "email": "npm@infinite.red",
-    "url": "https://github.com/infinitered/ignite"
+    "name": "bonnguyenitc",
+    "email": "bonnguyenitc@gmail.com",
+    "url": "https://github.com/bonnguyenitc/ignite"
   },
   "scripts": {
     "compile": "tsc -p .",
     "typecheck": "tsc -p . --noEmit",
     "build": "yarn clean && yarn compile && yarn build:assets",
-    "build:assets": "cp ./boilerplate/.gitignore ./boilerplate/.gitignore.template && cp ./src/assets/*.txt ./build/assets/",
+    "build:assets": "cp ./src/assets/*.txt ./build/assets/",
     "build:watch": "yarn build && yarn compile --watch",
     "format": "prettier '**/*{.js,.ts,.tsx,.json,.md}'",
     "format:write": "yarn format --write",
@@ -38,9 +38,9 @@
     "coverage": "jest --coverage",
     "ci:publish": "yarn build && yarn semantic-release && yarn clean",
     "semantic-release": "semantic-release",
-    "clean": "rm -drf ./build ./boilerplate/.gitignore.template ./boilerplate/node_modules ./boilerplate/ios/build/ ./boilerplate/ios/Pods/ ./boilerplate/android/app/build ./boilerplate/ios/.xcode.env.local",
-    "ignite-cli:dev": "node bin/ignite",
-    "ignite-cli:prod": "wrap () { node bin/ignite \"$@\" --compiled-build | cat; }; wrap"
+    "clean": "rm -drf ./build",
+    "bap-cli:dev": "node bin/bap",
+    "bap-cli:prod": "wrap () { node bin/bap \"$@\" --compiled-build | cat; }; wrap"
   },
   "devEngines": {
     "node": ">=7.x",
@@ -124,7 +124,7 @@
     "ignorePatterns": [
       "**/*.snap",
       "**/*.txt",
-      "bin/ignite"
+      "bin/bap"
     ]
   },
   "prettier": {

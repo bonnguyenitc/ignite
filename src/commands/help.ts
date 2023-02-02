@@ -21,11 +21,11 @@ module.exports = {
 
     heading(`Welcome to BAP CLI ${meta.version()}!`)
     p()
-    p("BAP CLI is a cli that helps you create base for new project")
+    p("BAPHUE CLI is a cli that helps you create base for new project")
     p()
     heading("Commands")
     p()
-    command("new             ", "Creates a new base source", ["bap new"])
+    command("new             ", "Creates a new base source", ["baphue new"])
     p()
     // command("generate (g)    ", "Generates components and other app features", [
     //   "ignite generate --hello",
