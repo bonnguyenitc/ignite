@@ -564,15 +564,6 @@ export default {
     p2(`Ignited ${em(`${projectName}`)} in ${gray(`${perfDuration}s`)}  🚀 `)
     p2()
 
-    if (!isAndroidInstalled(toolbox)) {
-      hr()
-      p2()
-      p2("To run in Android, make sure you've followed the latest")
-      p2(`react-native setup instructions. You reference them at:`)
-      p2(`${link("https://reactnative.dev/docs/environment-setup")}`)
-      p2()
-    }
-
     hr()
     p2()
     p2("Now get cooking! 🍽")
