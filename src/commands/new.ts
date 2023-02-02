@@ -6,7 +6,7 @@ import {
   startSpinner,
   stopSpinner,
   clearSpinners,
-  ascii,
+  // ascii,
   em,
   prefix,
   prettyPrompt,
@@ -112,6 +112,9 @@ export default {
     // #endregion Framework
 
     const isRN = framework === "ts-react-native"
+    const isReact = framework === "ts-react"
+    const isPHP = framework === "php-laravel"
+    const hasNodeModule = framework === "ts-react-native" || framework === "ts-react"
 
     // GIT path
     let boilerplateGitPath = ""
@@ -233,7 +236,7 @@ export default {
       packagerName = packagerNameResponse.packagerName
     }
 
-    const packagerOptions = { packagerName }
+    // const packagerOptions = { packagerName }
 
     const ignitePath = path(`${meta.src}`, "..")
     const boilerplatePath = path(ignitePath, "boilerplate")
@@ -267,25 +270,27 @@ export default {
 
     // #region Print Welcome
     // welcome everybody!
-    const terminalWidth = process.stdout.columns ?? 80
-    const logo =
-      terminalWidth > 80 ? () => ascii("logo.ascii.txt") : () => ascii("logo-sm.ascii.txt")
-    p()
-    p()
-    p()
-    p()
-    logo()
-    p()
-    p()
+    // const terminalWidth = process.stdout.columns ?? 80
+    // const logo =
+    //   terminalWidth > 80 ? () => ascii("logo.ascii.txt") : () => ascii("logo-sm.ascii.txt")
+    // p()
+    // p()
+    // p()
+    // p()
+    // logo()
+    // p()
+    // p()
 
     if (isRN) {
       const pkg = pkgColor(packagerName)
+      p()
       p(` █ Creating ${em(projectName)} using ${em(`BapHueCLi ${meta.version()}`)}`)
       p(` █ Package Manager: ${pkg(print.colors.bold(packagerName))}`)
       p(` █ Bundle identifier: ${em(REACT_NATIVE_BUNDLE_ID)}`)
       p(` █ Path: ${underline(targetPath)}`)
     } else {
-      p(` █ Creating ${em(projectName)} using ${em(`Ignite ${meta.version()}`)}`)
+      p()
+      p(` █ Creating ${em(projectName)} using ${em(`BapHueCLi ${meta.version()}`)}`)
       p(` █ Path: ${underline(targetPath)}`)
     }
     hr()
@@ -314,6 +319,13 @@ export default {
       targetPath,
     })
     stopSpinner(`Pulling from ${boilerplateGitPath}`, "🖨")
+    if (hasNodeModule && installDeps) {
+      startSpinner(`Installing  package from ${packagerName}`)
+      await system.run(`cd ${targetPath} && ${packager.installCmd({ packagerName })}`, {
+        trim: true,
+      })
+      stopSpinner(`Installing  package from ${packagerName}`, "🖨")
+    }
     // copy the .gitignore if it wasn't copied over
     // Release Ignite installs have the boilerplate's .gitignore in .gitignore.template
     // (see https://github.com/npm/npm/issues/3763); development Ignite still
@@ -333,14 +345,6 @@ export default {
 
     // jump into the project to do additional tasks
     process.chdir(targetPath)
-    // #endregion
-
-    // #region Run Format
-    // we can't run this option if we didn't install deps
-    if (installDeps === true) {
-      // Make sure all our modifications are formatted nicely
-      await packager.run("format", { ...packagerOptions, silent: !debug })
-    }
     // #endregion
 
     // #region Create Git Repository and Initial Commit
@@ -394,13 +398,20 @@ export default {
     hr()
     p2()
     p2("Now get cooking! 🍽")
-    if (framework === "ts-react" || framework === "ts-react-native") {
-      command(`cd ${projectName}`)
+    p2()
+    command(`cd ${projectName}`)
+    if (isReact) {
       if (!installDeps) command(packager.installCmd({ packagerName }))
       command(`${packagerName} start`)
     }
-    p2()
-    p2()
+    if (isRN) {
+      if (!installDeps) command(packager.installCmd({ packagerName }))
+      command(`${packagerName} android:dev`)
+      command(`${packagerName} ios:dev`)
+    }
+    if (isPHP) {
+      command("composer install")
+    }
     p2()
     // #endregion
 
