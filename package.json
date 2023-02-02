@@ -1,10 +1,10 @@
 {
-  "name": "ignite-cli",
+  "name": "bap-cli",
   "version": "1.0.0",
   "description": "Infinite Red's hottest boilerplate for React Native.",
   "bin": {
-    "ignite": "bin/ignite",
-    "ignite-cli": "bin/ignite"
+    "bap": "bin/bap",
+    "bap-cli": "bin/bap"
   },
   "preferGlobal": true,
   "license": "MIT",

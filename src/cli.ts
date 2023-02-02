@@ -6,7 +6,7 @@ import { build } from "gluegun"
 async function run(argv) {
   // create a CLI runtime
   const cli = build()
-    .brand("ignite-cli")
+    .brand("bap-cli")
     .exclude(["semver", "http", "template"])
     .src(__dirname)
     .defaultCommand(require("./commands/help"))

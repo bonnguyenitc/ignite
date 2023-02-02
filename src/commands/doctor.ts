@@ -116,7 +116,7 @@ module.exports = {
     info("")
     info(colors.cyan("Ignite"))
     const igniteTable = []
-    igniteTable.push([column1("ignite-cli"), column2(igniteVersion), column3(ignitePath)])
+    igniteTable.push([column1("bap-cli"), column2(igniteVersion), column3(ignitePath)])
     igniteTable.push([
       column1("ignite src"),
       column2(igniteSrcPath.split(separator).pop()),
