@@ -1,5 +1,5 @@
 import { GluegunToolbox } from "../types"
-import { isAndroidInstalled, copyBoilerplate, renameReactNativeApp } from "../tools/react-native"
+import { pullBoilerplate } from "../tools/react-native"
 import { packager, PackagerName } from "../tools/packager"
 import {
   p,
@@ -8,8 +8,6 @@ import {
   clearSpinners,
   ascii,
   em,
-  link,
-  ir,
   prefix,
   prettyPrompt,
   pkgColor,
@@ -17,37 +15,9 @@ import {
 } from "../tools/pretty"
 import type { ValidationsExports } from "../tools/validations"
 import { boolFlag } from "../tools/flag"
-import { cache } from "../tools/cache"
-import {
-  FRAMEWORKS,
-  FRAMEWORKS_TYPES,
-  REACT_NATIVE_BUNDLE_ID,
-  REACT_NATIVE_NAME,
-} from "../tools/framework"
+import { FRAMEWORKS, FRAMEWORKS_TYPES, REACT_NATIVE_BUNDLE_ID } from "../tools/framework"
 
 export interface Options {
-  /**
-   * alias for `boilerplate`
-   *
-   * Input Source: `parameter.option`
-   * @deprecated flag left in for backwards compatibility, warn them to use old Ignite
-   * @default undefined
-   */
-  b?: string
-  /**
-   * Input Source: `parameter.option`
-   * @deprecated flag left in for backwards compatibility, warn them to use old Ignite
-   * @default undefined
-   */
-  boilerplate?: string
-  /**
-   * custom bundle identifier for iOS and Android
-   *
-   * Input Source: `prompt.ask` | `parameter.option`
-   * @default `com.${name}`
-   * @example 'com.pizzaapp'
-   */
-  bundle?: string
   /**
    * Log raw parameters for debugging, run formatting script not quietly
    *
@@ -70,22 +40,9 @@ export interface Options {
    */
   installDeps?: boolean
   /**
-   * Remove existing directory otherwise throw if exists
-   *
-   * Input Source: `prompt.ask` | `parameter.option`
-   * @default false
-   */
-  overwrite?: boolean
-  /**
    * Input Source: `parameter.option`
    * @deprecated this option is deprecated. Ignite sets you up to run native or Expo
    * @default undefined
-   */
-  expo?: boolean
-  /**
-   * Package manager to install dependencies with
-   *
-   * Input Source: `prompt.ask`| `parameter.option`
    */
   packager?: "npm" | "yarn" | "pnpm"
   /**
@@ -95,19 +52,6 @@ export interface Options {
    * @default `${cwd}/${projectName}`
    */
   targetPath?: string
-  /**
-   * Whether or not to remove the boilerplate demo code
-   *
-   * Input Source: `prompt.ask` | `parameter.option`
-   * @default false
-   */
-  removeDemo?: boolean
-  /**
-   * Whether or not to use the dependency cache to speed up installs
-   * Input Source: `parameter.option`
-   * @default true
-   */
-  useCache?: boolean
   /**
    * alias for `yes`
    *
@@ -128,11 +72,10 @@ export interface Options {
 export default {
   run: async (toolbox: GluegunToolbox) => {
     // #region Toolbox
-    const { print, filesystem, system, meta, parameters, strings, prompt } = toolbox
-    const { kebabCase } = strings
-    const { exists, path, removeAsync, copy, read, write, homedir } = filesystem
+    const { print, filesystem, system, meta, parameters, prompt } = toolbox
+    const { exists, path, removeAsync, copy, homedir } = filesystem
     const { info, colors, warning } = print
-    const { gray, cyan, yellow, underline, white } = colors
+    const { gray, yellow, underline, white } = colors
     const options: Options = parameters.options
 
     const yname = boolFlag(options.y) || boolFlag(options.yes)
@@ -168,24 +111,32 @@ export default {
     framework = respBase.baseName
     // #endregion Framework
 
+    const isRN = framework === "ts-react-native"
+
+    // GIT path
+    let boilerplateGitPath = ""
+
+    if (framework === "ts-react") {
+      boilerplateGitPath = "https://gitlab-new.bap.jp/hue-project-base/base-react-typescript.git"
+    }
+    if (framework === "ts-react-native") {
+      boilerplateGitPath =
+        "https://gitlab-new.bap.jp/hue-project-base/react-native-base/react-native-typescript.git"
+    }
+    if (framework === "php-laravel") {
+      boilerplateGitPath =
+        "https://gitlab-new.bap.jp/hue-project-base/php-base-projects/laravel_api.git"
+    }
+    if (framework === "java-spring") {
+      boilerplateGitPath =
+        "https://gitlab-new.bap.jp/hue-project-base/php-base-projects/laravel_api.git"
+    }
+
     // #region Project Name
     // retrieve project name from toolbox
     p()
     const { validateProjectName } = require("../tools/validations") as ValidationsExports
     const projectName = await validateProjectName(toolbox)
-    const projectNameKebab = kebabCase(projectName)
-    // #endregion
-
-    // #region Boilerplate
-    // if they pass in --boilerplate, warn them to use old Ignite
-    const bname = options.b || options.boilerplate
-    if (bname) {
-      p()
-      p(yellow(`Different boilerplates are no longer supported in Ignite v4+.`))
-      p(gray(`To use the old CLI to support different boilerplates, try:`))
-      p(cyan(`npx ignite-cli@3 new ${projectName} --boilerplate ${bname}`))
-      process.exit(1)
-    }
     // #endregion
 
     // #region Project Path
@@ -209,25 +160,8 @@ export default {
 
     // #endregion
 
-    // #region Prompt Overwrite
-    // if they pass in --overwrite, remove existing directory otherwise throw if exists
-    const defaultOverwrite = false
-    let overwrite = useDefault(options.overwrite) ? defaultOverwrite : boolFlag(options.overwrite)
-
-    if (exists(targetPath) && overwrite === undefined) {
-      const overwriteResponse = await prompt.ask<{ overwrite: boolean }>(() => ({
-        type: "confirm",
-        name: "overwrite",
-        message: `Directory ${targetPath} already exists. Do you want to overwrite it?`,
-        initial: defaultOverwrite,
-        format: prettyPrompt.format.boolean,
-        prefix,
-      }))
-      overwrite = overwriteResponse.overwrite
-    }
-
-    if (exists(targetPath) && overwrite === false) {
-      const alreadyExists = `Error: There's already a folder at ${targetPath}. To force overwriting that folder, run with --overwrite or say yes.`
+    if (exists(targetPath)) {
+      const alreadyExists = `Error: There's already a folder at ${targetPath}.`
       p()
       p(yellow(alreadyExists))
       process.exit(1)
@@ -327,17 +261,6 @@ export default {
     }
     // #endregion
 
-    // #region Expo
-    // show warning about --expo going away
-    const expo = boolFlag(options.expo)
-    if (expo) {
-      warning(
-        " Detected --expo, this option is deprecated. Ignite sets you up to run native or Expo!",
-      )
-      p()
-    }
-    // #endregion
-
     // #region Debug
     // start tracking performance
     const perfStart = new Date().getTime()
@@ -355,23 +278,19 @@ export default {
     p()
     p()
 
-    const pkg = pkgColor(packagerName)
-    p(` █ Creating ${em(projectName)} using ${em(`Ignite ${meta.version()}`)}`)
-    p(` █ Powered by ${ir(" ∞ Infinite Red ")} (${link("https://infinite.red")})`)
-    p(` █ Package Manager: ${pkg(print.colors.bold(packagerName))}`)
-    p(` █ Bundle identifier: ${em(REACT_NATIVE_BUNDLE_ID)}`)
-    p(` █ Path: ${underline(targetPath)}`)
+    if (isRN) {
+      const pkg = pkgColor(packagerName)
+      p(` █ Creating ${em(projectName)} using ${em(`BapHueCLi ${meta.version()}`)}`)
+      p(` █ Package Manager: ${pkg(print.colors.bold(packagerName))}`)
+      p(` █ Bundle identifier: ${em(REACT_NATIVE_BUNDLE_ID)}`)
+      p(` █ Path: ${underline(targetPath)}`)
+    } else {
+      p(` █ Creating ${em(projectName)} using ${em(`Ignite ${meta.version()}`)}`)
+      p(` █ Path: ${underline(targetPath)}`)
+    }
     hr()
     p()
-    // #endregion
 
-    // #region Overwrite
-    if (exists(targetPath) === "dir" && overwrite === true) {
-      const msg = ` Tossing that old app like it's hot`
-      startSpinner(msg)
-      await removeAsync(targetPath)
-      stopSpinner(msg, "🗑️")
-    }
     // #endregion
 
     // #region Local build folder clean
@@ -388,14 +307,13 @@ export default {
     // #endregion
 
     // #region Copy Boilerplate Files
-    startSpinner(" 3D-printing a new React Native app")
-    await copyBoilerplate(toolbox, {
-      boilerplatePath,
+    startSpinner(`Pulling from ${boilerplateGitPath}`)
+    p()
+    await pullBoilerplate(toolbox, {
+      boilerplateGitPath,
       targetPath,
-      excluded: [".vscode", "node_modules", "yarn.lock", "dist"],
-      overwrite,
     })
-    stopSpinner(" 3D-printing a new React Native app", "🖨")
+    stopSpinner(`Pulling from ${boilerplateGitPath}`, "🖨")
     // copy the .gitignore if it wasn't copied over
     // Release Ignite installs have the boilerplate's .gitignore in .gitignore.template
     // (see https://github.com/npm/npm/issues/3763); development Ignite still
@@ -415,97 +333,6 @@ export default {
 
     // jump into the project to do additional tasks
     process.chdir(targetPath)
-    // #endregion
-
-    // #region Handle package.json
-    // Update package.json:
-    // - We need to replace the app name in the detox paths. We do it on the
-    //   unparsed file content since that's easier than updating individual values
-    //   in the parsed structure, then we parse that as JSON.
-    // - If Expo, we also merge in our extra expo stuff.
-    // - Then write it back out.
-    let packageJsonRaw = read("package.json")
-    packageJsonRaw = packageJsonRaw
-      .replace(/HelloWorld/g, projectName)
-      .replace(/hello-world/g, projectNameKebab)
-    const packageJson = JSON.parse(packageJsonRaw)
-
-    write("./package.json", packageJson)
-
-    // TODO: still need this in this order, was an if (expo) ?
-    // for some reason we need to do this, or we get an error about duplicate RNCSafeAreaProviders
-    // see https://github.com/th3rdwave/react-native-safe-area-context/issues/110#issuecomment-668864576
-    // await packager.add(`react-native-safe-area-context`, packagerOptions)
-    // #endregion
-
-    // #region Run Packager Install
-    // pnpm/yarn/npm install it
-
-    // check if there is a dependency cache using a hash of the package.json
-    const boilerplatePackageJsonHash = cache.hash(read(path(boilerplatePath, "package.json")))
-    const cachePath = path(cache.rootdir(), boilerplatePackageJsonHash, packagerName)
-    const cacheExists = exists(cachePath) === "dir"
-
-    log(`${!cacheExists ? "expected " : ""}cachePath: ${cachePath}`)
-    log(`cacheExists: ${cacheExists}`)
-
-    // use-cache defaults to `false` for now; if we make it robust enough,
-    // we can enable it by default in the future.
-    const defaultUseCache = false
-    const useCache = options.useCache === undefined ? defaultUseCache : boolFlag(options.useCache)
-
-    const shouldUseCache = installDeps && cacheExists && useCache
-    if (shouldUseCache) {
-      const msg = `Grabbing those ${packagerName} dependencies from the back`
-      startSpinner(msg)
-      await cache.copy({
-        fromRootDir: cachePath,
-        toRootDir: targetPath,
-        packagerName,
-      })
-      stopSpinner(msg, "📦")
-    }
-
-    // #region Rename App
-    // rename the app using Ignite
-    const renameSpinnerMsg = `Getting those last few details perfect`
-    startSpinner(renameSpinnerMsg)
-
-    await renameReactNativeApp(
-      toolbox,
-      REACT_NATIVE_NAME,
-      projectName,
-      REACT_NATIVE_BUNDLE_ID,
-      REACT_NATIVE_BUNDLE_ID,
-    )
-
-    stopSpinner(renameSpinnerMsg, "🎨")
-    // #endregion
-
-    const shouldFreshInstallDeps = installDeps && shouldUseCache === false
-    if (shouldFreshInstallDeps) {
-      const unboxingMessage = `Installing ${packagerName} dependencies (wow these are heavy)`
-      startSpinner(unboxingMessage)
-      await packager.install({ ...packagerOptions, onProgress: log })
-      stopSpinner(unboxingMessage, "🧶")
-    }
-
-    // remove the gitignore template
-    await removeAsync(".gitignore.template")
-    // #endregion
-
-    // #region Cache dependencies
-    if (shouldFreshInstallDeps && cacheExists === false && useCache) {
-      const msg = `Saving ${packagerName} dependencies for next time`
-      startSpinner(msg)
-      log(targetPath)
-      await cache.copy({
-        fromRootDir: targetPath,
-        toRootDir: cachePath,
-        packagerName,
-      })
-      stopSpinner(msg, "📦")
-    }
     // #endregion
 
     // #region Run Format

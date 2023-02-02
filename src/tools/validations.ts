@@ -1,32 +1,38 @@
 import { GluegunToolbox, strings } from "gluegun"
 import { prefix } from "./pretty"
-const { pascalCase } = strings
+const { kebabCase } = strings
 
 // #region Error Guards
 type IsError = (str: string) => boolean
 type ErrorMessage = (str?: string) => string
 type ErrorGuard = [IsError, ErrorMessage]
 
-const isIgnite: ErrorGuard = [
-  (str) => str.toLowerCase() === "ignite",
-  (str) => `Hey...that's my name! Please name your project something other than '${str}'.`,
-]
-const isOnlyNumbers: ErrorGuard = [
-  (str) => /^\d+$/.test(str),
-  () => `Please use at least one non-numeric character for your project name`,
-]
-const isKebabCase: ErrorGuard = [
-  (str) => str.includes("-"),
-  (str) =>
-    `Please use 'PascalCase', not 'kebab-case' for your project name. Ex: ${pascalCase(str)}`,
-]
-const isNotAlphaNumeric: ErrorGuard = [
-  (str) => !/^[a-z_][a-z0-9_]+$/i.test(str),
-  () =>
-    `The project name can only contain alphanumeric characters and underscore, but must not begin with a number.`,
+// const isIgnite: ErrorGuard = [
+//   (str) => str.toLowerCase() === "ignite",
+//   (str) => `Hey...that's my name! Please name your project something other than '${str}'.`,
+// ]
+// const isOnlyNumbers: ErrorGuard = [
+//   (str) => /^\d+$/.test(str),
+//   () => `Please use at least one non-numeric character for your project name`,
+// ]
+// const isKebabCase: ErrorGuard = [
+//   (str) => str.includes("-"),
+//   (str) =>
+//     `Please use 'PascalCase', not 'kebab-case' for your project name. Ex: ${pascalCase(str)}`,
+// ]
+
+const isPascalCase: ErrorGuard = [
+  (str) => /[A-Z]/.test(str),
+  (str) => `Please use 'KebabCase', not 'kebab-case' for your project name. Ex: ${kebabCase(str)}`,
 ]
 
-const guards: ErrorGuard[] = [isIgnite, isOnlyNumbers, isKebabCase, isNotAlphaNumeric]
+// const isNotAlphaNumeric: ErrorGuard = [
+//   (str) => !/^[a-z_][a-z0-9_]+$/i.test(str),
+//   () =>
+//     `The project name can only contain alphanumeric characters and underscore, but must not begin with a number.`,
+// ]
+
+const guards: ErrorGuard[] = [isPascalCase]
 
 /**
  * check if the value matches any of the error guards
