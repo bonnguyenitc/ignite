@@ -235,7 +235,7 @@ export default {
     // #endregion
 
     // #region Prompt Git Option
-    const defaultGit = false
+    const defaultGit = undefined
     // let git = useDefault(options.git) ? defaultGit : boolFlag(options.git)
     let git = defaultGit
 
@@ -576,17 +576,11 @@ export default {
     hr()
     p2()
     p2("Now get cooking! 🍽")
-    command(`cd ${projectName}`)
-    if (!installDeps) command(packager.installCmd({ packagerName }))
-    command(`${packagerName} start`)
-
-    const isMac = process.platform === "darwin"
-    if (isMac) {
-      command(`${packager.runCmd("ios", packagerOptions)}`)
-    } else {
-      command(`${packager.runCmd("android", packagerOptions)}`)
+    if (framework === "ts-react" || framework === "ts-react-native") {
+      command(`cd ${projectName}`)
+      if (!installDeps) command(packager.installCmd({ packagerName }))
+      command(`${packagerName} start`)
     }
-
     p2()
     p2()
     p2()
