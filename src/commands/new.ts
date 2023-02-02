@@ -14,12 +14,16 @@ import {
   prettyPrompt,
   pkgColor,
   hr,
-  INDENT,
 } from "../tools/pretty"
 import type { ValidationsExports } from "../tools/validations"
 import { boolFlag } from "../tools/flag"
 import { cache } from "../tools/cache"
-import { EOL } from "os"
+import {
+  FRAMEWORKS,
+  FRAMEWORKS_TYPES,
+  REACT_NATIVE_BUNDLE_ID,
+  REACT_NATIVE_NAME,
+} from "../tools/framework"
 
 export interface Options {
   /**
@@ -132,6 +136,7 @@ export default {
     const options: Options = parameters.options
 
     const yname = boolFlag(options.y) || boolFlag(options.yes)
+
     const useDefault = (option: unknown) => yname && option === undefined
 
     const CMD_INDENT = "  "
@@ -149,6 +154,19 @@ export default {
     // log raw parameters for debugging
     log(`ignite command: ${parameters.argv.join(" ")}`)
     // #endregion
+
+    // #region Framework
+    let framework = "ts-react"
+    const respBase = await prompt.ask<{ baseName: FRAMEWORKS_TYPES }>(() => ({
+      type: "select",
+      name: "baseName",
+      message: "Which base do you want to use?",
+      choices: FRAMEWORKS,
+      framework,
+      prefix,
+    }))
+    framework = respBase.baseName
+    // #endregion Framework
 
     // #region Project Name
     // retrieve project name from toolbox
@@ -168,28 +186,6 @@ export default {
       p(cyan(`npx ignite-cli@3 new ${projectName} --boilerplate ${bname}`))
       process.exit(1)
     }
-    // #endregion
-
-    // #region Bundle Identifier
-    const defaultBundleIdentifier = `com.${projectName.toLowerCase()}`
-    // let bundleIdentifier = useDefault(options.bundle) ? defaultBundleIdentifier : options.bundle
-    let bundleIdentifier = "com.starter"
-
-    if (bundleIdentifier === undefined) {
-      const bundleIdentifierResponse = await prompt.ask(() => ({
-        type: "input",
-        name: "bundleIdentifier",
-        message: "What bundle identifier?",
-        initial: defaultBundleIdentifier,
-        prefix,
-      }))
-
-      bundleIdentifier = bundleIdentifierResponse.bundleIdentifier
-    }
-
-    const { validateBundleIdentifier } = require("../tools/validations") as ValidationsExports
-    validateBundleIdentifier(toolbox, bundleIdentifier)
-
     // #endregion
 
     // #region Project Path
@@ -256,27 +252,7 @@ export default {
     }
     // #endregion
 
-    // #region Prompt to Remove Demo code
-    const defaultRemoveDemo = false
-    // let removeDemo = useDefault(options.removeDemo)
-    //   ? defaultRemoveDemo
-    //   : boolFlag(options.removeDemo)
-    let removeDemo = false
-    if (removeDemo === undefined) {
-      const removeDemoResponse = await prompt.ask<{ removeDemo: boolean }>(() => ({
-        type: "confirm",
-        name: "removeDemo",
-        message:
-          "Remove demo code? We recommend leaving it in if it's your first time using Ignite",
-        initial: defaultRemoveDemo,
-        format: prettyPrompt.format.boolean,
-        prefix,
-      }))
-      removeDemo = removeDemoResponse.removeDemo
-    }
-    // #endregion
-
-    // #region Packager
+    // #region Packager for framework ts
     // check if a packager is provided, or detect one
     // we pass in expo because we can't use pnpm if we're using expo
 
@@ -299,7 +275,10 @@ export default {
       process.exit(1)
     }
 
-    if (packagerName === undefined) {
+    if (
+      packagerName === undefined &&
+      (framework === "ts-react" || framework === "ts-react-native")
+    ) {
       const initial = availablePackagers.findIndex((p) => p === defaultPackagerName)
       const NOT_FOUND = -1
 
@@ -332,7 +311,10 @@ export default {
     let installDeps = useDefault(options.installDeps)
       ? defaultInstallDeps
       : boolFlag(options.installDeps)
-    if (installDeps === undefined) {
+    if (
+      installDeps === undefined &&
+      (framework === "ts-react" || framework === "ts-react-native")
+    ) {
       const installDepsResponse = await prompt.ask<{ installDeps: boolean }>(() => ({
         type: "confirm",
         name: "installDeps",
@@ -377,7 +359,7 @@ export default {
     p(` █ Creating ${em(projectName)} using ${em(`Ignite ${meta.version()}`)}`)
     p(` █ Powered by ${ir(" ∞ Infinite Red ")} (${link("https://infinite.red")})`)
     p(` █ Package Manager: ${pkg(print.colors.bold(packagerName))}`)
-    p(` █ Bundle identifier: ${em(bundleIdentifier)}`)
+    p(` █ Bundle identifier: ${em(REACT_NATIVE_BUNDLE_ID)}`)
     p(` █ Path: ${underline(targetPath)}`)
     hr()
     p()
@@ -491,10 +473,10 @@ export default {
 
     await renameReactNativeApp(
       toolbox,
-      "HelloWorld",
+      REACT_NATIVE_NAME,
       projectName,
-      "com.helloworld",
-      bundleIdentifier,
+      REACT_NATIVE_BUNDLE_ID,
+      REACT_NATIVE_BUNDLE_ID,
     )
 
     stopSpinner(renameSpinnerMsg, "🎨")
@@ -531,24 +513,6 @@ export default {
     if (installDeps === true) {
       // Make sure all our modifications are formatted nicely
       await packager.run("format", { ...packagerOptions, silent: !debug })
-    }
-    // #endregion
-
-    // #region Remove Demo code
-    if (removeDemo === true) {
-      startSpinner(" Removing fancy demo code")
-      try {
-        const IGNITE = "node " + filesystem.path(__dirname, "..", "..", "bin", "ignite")
-
-        log(`Ignite bin path: ${IGNITE}`)
-        await system.run(`${IGNITE} remove-demo ${targetPath}`, {
-          onProgress: log,
-        })
-      } catch (e) {
-        log(e)
-        p(yellow("Unable to remove demo code."))
-      }
-      stopSpinner(" Removing fancy demo code", "🛠️")
     }
     // #endregion
 
@@ -599,39 +563,6 @@ export default {
 
     p2(`Ignited ${em(`${projectName}`)} in ${gray(`${perfDuration}s`)}  🚀 `)
     p2()
-    const cliCommand = buildCliCommand({
-      flags: {
-        b: bname,
-        boilerplate: bname,
-        bundle: bundleIdentifier,
-        debug,
-        git,
-        installDeps,
-        overwrite,
-        expo,
-        packager: packagerName,
-        targetPath,
-        removeDemo,
-        useCache,
-        y: yname,
-        yes: yname,
-      },
-      projectName,
-      toolbox,
-    })
-
-    p2(`For next time: here are the Ignite options you picked!`)
-
-    // create a multi-line string of the command, where each --flag is on it's own line
-    const prettyCliCommand = cliCommand
-      .split(" ")
-      .map((c) => (c === projectName || c?.startsWith("--") ? `${c} \\${EOL}` : c)) // add a line break after the project name and each flag
-      .map((c, i, a) => (i === a.length - 1 ? c.replace(`\\${EOL}`, "") : c)) // remove the line break after the last flag
-      .map((c) => (c.startsWith("--") ? INDENT + CMD_INDENT + CMD_INDENT + c : c)) // add whitespace to the flags so it looks nice
-      .join(" ")
-
-    command(`${prettyCliCommand}`)
-    p2()
 
     if (!isAndroidInstalled(toolbox)) {
       hr()
@@ -641,13 +572,6 @@ export default {
       p2(`${link("https://reactnative.dev/docs/environment-setup")}`)
       p2()
     }
-
-    hr()
-    p2()
-    p2("Need additional help?")
-    p2()
-    p2(`Join our Slack community at ${link("http://community.infinite.red.")}`)
-    p2()
 
     hr()
     p2()
@@ -664,10 +588,6 @@ export default {
     }
 
     p2()
-    p2("With Expo:")
-    command(`cd ${projectName}`)
-    if (!installDeps) command(packager.installCmd({ packagerName }))
-    command(`${packager.runCmd("expo:start", packagerOptions)}`)
     p2()
     p2()
     // #endregion
@@ -678,33 +598,4 @@ export default {
     // see https://github.com/infinitered/ignite/issues/2084
     process.exit(0)
   },
-}
-
-function buildCliCommand(args: {
-  flags: Required<Options>
-  toolbox: GluegunToolbox
-  projectName: string
-}): string {
-  const { flags, toolbox, projectName } = args
-  const { strings } = toolbox
-  const { kebabCase } = strings
-
-  type Flag = keyof typeof flags
-  type FlagEntry = [key: Flag, value: Options[Flag]]
-
-  const privateFlags: Flag[] = ["b", "boilerplate", "debug", "expo", "useCache", "y", "yes"]
-
-  const stringFlag = ([key, value]: FlagEntry) => `--${kebabCase(key)}=${value}`
-  const booleanFlag = ([key, value]: FlagEntry) =>
-    value ? `--${kebabCase(key)}` : `--${kebabCase(key)}=${value}`
-
-  const cliCommand = `npx ignite-cli new ${projectName} ${(Object.entries(flags) as FlagEntry[])
-    .filter(([key]) => privateFlags.includes(key) === false)
-    .filter(([, value]) => value !== undefined)
-    .map(([key, value]) =>
-      typeof value === "boolean" ? booleanFlag([key, value]) : stringFlag([key, value]),
-    )
-    .join(" ")}`
-
-  return cliCommand
 }
