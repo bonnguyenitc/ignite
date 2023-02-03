@@ -1,7 +1,7 @@
 {
   "name": "baphue-cli",
-  "version": "1.0.2",
-  "description": "Infinite Red's hottest boilerplate for React Native.",
+  "version": "1.0.3",
+  "description": "BAPHUE CLI is a cli that helps you create base for new project",
   "bin": {
     "baphue": "bin/baphue",
     "baphue-cli": "bin/baphue"
